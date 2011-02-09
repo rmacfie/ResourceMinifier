@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Web;
 using System.Web.Caching;
 using System.Web.Hosting;
@@ -57,7 +58,7 @@ namespace ResourceMinifier
 			lock (package)
 			{
 				var physicalPaths = new List<string>();
-				var contents = string.Empty;
+				var contentSb = new StringBuilder();
 
 				foreach (var virtualPath in package.Paths)
 				{
@@ -73,20 +74,26 @@ namespace ResourceMinifier
 
 					if (tmpContent == null)
 					{
-						contents += "/* ResourceMinifier error: Missing file */";
+						contentSb.Append("/* ResourceMinifier error: Missing file */");
 					}
 					else if (DoMinify)
 					{
-						contents += Minify(tmpContent);
+						contentSb.Append(Minify(tmpContent));
 					}
 					else
 					{
-						contents += tmpContent;
+						contentSb.Append(tmpContent);
 					}
-					contents += Environment.NewLine + " " + Environment.NewLine;
+
+					contentSb.AppendLine();
+					contentSb.AppendLine();
 				}
 
-				var cacheDependency = physicalPaths.Count > 0 ? new CacheDependency(physicalPaths.ToArray()) : null;
+				var contents = contentSb.ToString();
+
+				var cacheDependency = physicalPaths.Count > 0
+					? new CacheDependency(physicalPaths.ToArray())
+					: null;
 
 				HttpRuntime.Cache.Insert(
 					package.GetCacheKey(),
