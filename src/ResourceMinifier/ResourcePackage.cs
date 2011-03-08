@@ -59,6 +59,7 @@ namespace ResourceMinifier
 			{
 				var physicalPaths = new List<string>();
 				var contentSb = new StringBuilder();
+				var lastModified = DateTime.MinValue;
 
 				foreach (var virtualPath in package.Paths)
 				{
@@ -68,9 +69,15 @@ namespace ResourceMinifier
 					}
 
 					string tmpPathPhysical;
-					var tmpContent = RetrieveFromDisk(virtualPath, out tmpPathPhysical);
+					DateTime tmpLastModified;
+					var tmpContent = RetrieveFromDisk(virtualPath, out tmpPathPhysical, out tmpLastModified);
 
 					physicalPaths.Add(tmpPathPhysical);
+
+					if (tmpLastModified > lastModified)
+					{
+						lastModified = tmpLastModified;
+					}
 
 					if (tmpContent == null)
 					{
@@ -114,21 +121,23 @@ namespace ResourceMinifier
 			return string.Format(_keyFormat, Key);
 		}
 
-		private static string RetrieveFromDisk(string virtualPath, out string absolutePath)
+		private static string RetrieveFromDisk(string virtualPath, out string physicalPath, out DateTime lastModified)
 		{
-			absolutePath = HostingEnvironment.MapPath(virtualPath);
+			physicalPath = HostingEnvironment.MapPath(virtualPath);
 
-			if (absolutePath == null)
+			if (physicalPath == null)
 			{
 				throw PathFormatException(virtualPath);
 			}
 
 			try
 			{
-				return File.ReadAllText(absolutePath);
+				lastModified = File.GetLastWriteTime(physicalPath);
+				return File.ReadAllText(physicalPath);
 			}
 			catch
 			{
+				lastModified = DateTime.MinValue;
 				return null;
 			}
 		}
